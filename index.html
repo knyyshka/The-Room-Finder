@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEU Room Finder | Clement Town</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom Styles & Animations */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .view-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            min-width: 250px;
+            padding: 12px 20px;
+            background: #fff;
+            border-left: 4px solid #4f46e5;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideInRight 0.3s ease-out forwards;
+        }
+
+        .toast.success {
+            border-color: #10b981;
+        }
+
+        .toast.error {
+            border-color: #ef4444;
+        }
+
+        .toast-hide {
+            animation: fadeOut 0.3s ease-in forwards;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<div id="toast-container"></div>
+
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Global Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Brand Logo -->
+                <div class="flex items-center cursor-pointer" onclick="navigate('home')">
+                    <i class="fas fa-home text-2xl text-indigo-600 mr-2"></i>
+                    <span class="text-xl font-bold text-gray-900 tracking-tight">GEU RoomFinder</span>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center space-x-6" id="nav-desktop">
+                    <button onclick="navigate('search')" class="text-gray-600 hover:text-indigo-600 font-medium">Browse
+                        PGs</button>
+                    <!-- Logged Out State -->
+                    <button id="nav-login-btn" onclick="navigate('login')"
+                        class="bg-indigo-600 text-white px-5 py-2 rounded-full font-medium hover:bg-indigo-700 transition">
+                        Login / Register
+                    </button>
+                    <!-- Logged In State -->
+                    <div id="nav-user-menu" class="hidden md:flex items-center gap-4">
+
+                          <!-- Owner Dashboard -->
+                        <button id="nav-owner-dash" onclick="navigate('owner-dashboard')"
+                            class="hidden flex items-center text-gray-600 hover:text-indigo-600 font-medium h-10">
+
+                            My Properties
+                        </button>
+
+                        <!-- User Badge -->
+                        <div class="flex items-center gap-2 bg-gray-50 px-3 h-10 rounded-full border border-gray-200">
+                            <i class="fas fa-user-circle text-gray-500 text-lg"></i>
+                            <span id="nav-username" class="text-sm font-semibold text-gray-700">
+                                User
+                            </span>
+                        </div>
+
+                        <!-- Logout Button -->
+                        <button onclick="handleLogout()"
+                            class="flex items-center justify-center h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition"
+                            title="Logout">
+
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+
+                    </div>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="flex items-center md:hidden">
+                    <button type="button" onclick="toggleMobileMenu()" class="text-gray-600 p-2"
+                        aria-label="Toggle mobile menu">
+                        <i id="mobile-menu-icon" class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Dropdown Menu (Hidden initially) -->
+        <div id="mobile-menu"
+            class="hidden bg-white border-t border-gray-100 px-4 pt-2 pb-4 space-y-2 shadow-lg md:hidden">
+            <button onclick="navigate('search'); toggleMobileMenu();"
+                class="block w-full text-left py-2 text-gray-700 font-medium">Browse PGs</button>
+            <div id="mobile-login-btn">
+                <button onclick="navigate('login'); toggleMobileMenu();"
+                    class="block w-full text-left py-2 text-indigo-600 font-medium">Login / Register</button>
+            </div>
+            <div id="mobile-user-menu" class="hidden">
+                <button id="mobile-owner-dash" onclick="navigate('owner-dashboard'); toggleMobileMenu();"
+                    class="hidden block w-full text-left py-2 text-gray-700 font-medium">My Properties</button>
+                <button onclick="handleLogout(); toggleMobileMenu();"
+                    class="block w-full text-left py-2 text-red-500 font-medium">Logout (<span
+                        id="mobile-username"></span>)</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="min-h-screen">
+
+        <!-- HOME VIEW -->
+        <section id="home" class="view-section active">
+            <!-- Hero Section -->
+            <div class="bg-indigo-600 text-white py-20 px-4 relative overflow-hidden">
+                <div
+                    class="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=1600&q=80')] bg-cover bg-center">
+                </div>
+                <div class="max-w-4xl mx-auto text-center relative z-10">
+                    <span
+                        class="bg-indigo-500/50 text-indigo-100 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block">Exclusive
+                        for Graphic Era Students</span>
+                    <h1 class="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">Find Your Perfect PG Near GEU
+                    </h1>
+                    <p class="text-lg md:text-xl text-indigo-100 mb-10 max-w-2xl mx-auto">Skip the broker fees. Directly
+                        connect with verified PG owners around Clement Town, Bell Road, and Subhash Nagar.</p>
+
+                    <div
+                        class="bg-white p-2 rounded-full flex flex-col md:flex-row shadow-xl max-w-3xl mx-auto border-4 border-white/20">
+                        <div
+                            class="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-gray-200">
+                            <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
+                            <select id="home-search-location" class="w-full bg-transparent text-gray-700 outline-none"
+                                title="home-search-location">
+                                <option value="All">All GEU Areas</option>
+                                <option value="Clement Town">Clement Town</option>
+                                <option value="Bell Road">Bell Road</option>
+                                <option value="Subhash Nagar">Subhash Nagar</option>
+                            </select>
+                        </div>
+                        <div class="flex-1 flex items-center px-4 py-2">
+                            <i class="fas fa-user text-gray-400 mr-2"></i>
+                            <select id="home-search-type" class="w-full bg-transparent text-gray-700 outline-none"
+                                title="home-search-type">
+                                <option value="All">Any Gender</option>
+                                <option value="Boys">Boys PG</option>
+                                <option value="Girls">Girls PG</option>
+                            </select>
+                        </div>
+                        <button onclick="applyHomeSearchAndNavigate()"
+                            class="bg-indigo-600 text-white rounded-full px-8 py-3 md:py-2 mt-2 md:mt-0 font-bold hover:bg-indigo-700 transition flex items-center justify-center">
+                            Search <i class="fas fa-chevron-right ml-2 text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Featured Section -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Featured Accommodations</h2>
+                        <p class="text-gray-600 mt-1">Highly rated PGs near Graphic Era campus</p>
+                    </div>
+                    <button onclick="navigate('search')"
+                        class="hidden md:flex text-indigo-600 font-medium items-center hover:text-indigo-800">
+                        View all <i class="fas fa-chevron-right ml-1 text-xs"></i>
+                    </button>
+                </div>
+                <!-- Featured Cards Container -->
+                <div id="featured-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Javascript will inject 3 featured cards here -->
+                </div>
+                <button onclick="navigate('search')"
+                    class="md:hidden w-full mt-8 bg-indigo-50 text-indigo-700 font-medium py-3 rounded-xl flex justify-center items-center">
+                    View all properties <i class="fas fa-chevron-right ml-1 text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Call to Action (Owner) -->
+            <div class="bg-gray-100 py-16 border-t border-gray-200">
+                <div class="max-w-4xl mx-auto px-4 text-center">
+                    <h2 class="text-3xl font-extrabold text-gray-900 mb-4">Are you a PG Owner near GEU?</h2>
+                    <p class="text-lg text-gray-600 mb-8">List your property on the official student portal. Get direct
+                        leads, manage your availability, and fill your rooms faster without paying middleman
+                        commissions.</p>
+                    <button onclick="navigate('login')"
+                        class="bg-gray-900 text-white px-8 py-3 rounded-full font-bold hover:bg-gray-800 transition">
+                        Add Your Property Now
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEARCH / BROWSE VIEW -->
+        <section id="search" class="view-section py-8 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col md:flex-row gap-8">
+                    <!-- Filters Sidebar -->
+                    <div class="w-full md:w-1/4">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 sticky top-24">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-filter mr-2 text-indigo-600"></i> Filters
+                            </h3>
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">PG Type</label>
+                                <select id="filter-type" onchange="filterRooms()"
+                                    class="w-full border-gray-300 border rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="All">All Types</option>
+                                    <option value="Boys">Boys Only</option>
+                                    <option value="Girls">Girls Only</option>
+                                    <option value="Unisex">Unisex</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Maximum Rent: <span
+                                        id="rent-val" class="font-bold text-indigo-600">₹15,000</span></label>
+                                <input type="range" id="filter-rent" min="3000" max="25000" step="500" value="15000"
+                                    oninput="updateRentLabel(); filterRooms()"
+                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Location / Area</label>
+                                <select id="filter-location" onchange="filterRooms()"
+                                    class="w-full border-gray-300 border rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="All">All Locations</option>
+                                    <option value="Clement Town">Clement Town</option>
+                                    <option value="Bell Road">Bell Road</option>
+                                    <option value="Subhash Nagar">Subhash Nagar</option>
+                                    <option value="Turner Road">Turner Road</option>
+                                    <option value="Society Area">Society Area</option>
+                                </select>
+                            </div>
+
+                            <button onclick="resetFilters()"
+                                class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-200 transition">
+                                Reset Filters
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search Results -->
+                    <div class="w-full md:w-3/4">
+                        <div class="mb-6 flex justify-between items-center">
+                            <h2 class="text-2xl font-bold text-gray-900">Available Accommodations</h2>
+                            <span id="results-count"
+                                class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded">Results</span>
+                        </div>
+                        <!-- Cards Grid -->
+                        <div id="search-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- JS will inject filtered cards here -->
+                        </div>
+
+                        <!-- Empty State (Hidden initially) -->
+                        <div id="no-results"
+                            class="hidden text-center py-12 bg-white rounded-2xl border border-gray-200">
+                            <i class="fas fa-search-minus text-4xl text-gray-300 mb-3"></i>
+                            <h3 class="text-lg font-medium text-gray-900">No rooms found</h3>
+                            <p class="text-gray-500 mt-1">Try adjusting your filters to find more options.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LOGIN / REGISTER VIEW -->
+        <section id="login" class="view-section min-h-screen flex justify-center items-center bg-gray-50 px-4">
+            <div class="max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+                <div class="text-center mb-8">
+                    <div class="mx-auto w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-user-lock text-xl text-indigo-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">Welcome Back</h2>
+                    <p class="text-gray-500 text-sm mt-1">Please select your role and enter your details.</p>
+                </div>
+
+                <form onsubmit="handleLoginSubmit(event)" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="role" value="student" checked class="peer sr-only">
+                                <div
+                                    class="p-3 border rounded-lg text-center peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 transition">
+                                    <i class="fas fa-graduation-cap mb-1"></i><br>Student
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="role" value="owner" class="peer sr-only">
+                                <div
+                                    class="p-3 border rounded-lg text-center peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 transition">
+                                    <i class="fas fa-building mb-1"></i><br>Admin
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="login-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="login-name" required placeholder="John Doe"
+                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-indigo-600 text-white rounded-lg py-3 font-bold hover:bg-indigo-700 transition shadow-sm">
+                        Continue to Portal
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- OWNER DASHBOARD VIEW -->
+        <section id="owner-dashboard" class="view-section py-8 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-8 border-b border-gray-200 pb-5 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900">Owner Dashboard</h2>
+                        <p class="text-gray-600 mt-1">Manage your properties and add new listings.</p>
+                    </div>
+                    <button onclick="toggleAddRoomForm()"
+                        class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Add Property
+                    </button>
+                </div>
+
+                <!-- Add Property Form (Hidden by default) -->
+                <div id="add-room-form" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">List New PG / Room</h3>
+                    <form onsubmit="handleAddRoomSubmit(event)" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Property Name</label>
+                            <input type="text" id="new-title" required placeholder="e.g. Graphic View Boys PG"
+                                class="w-full border border-gray-300 rounded-lg p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">PG Type</label>
+                            <select id="new-type" required class="w-full border border-gray-300 rounded-lg p-2.5">
+                                <option value="Boys">Boys</option>
+                                <option value="Girls">Girls</option>
+                                <script src="script.js"></script>
